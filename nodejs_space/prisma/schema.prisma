@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model player {
+  id            String          @id @default(uuid())
+  username      String          @unique
+  email         String          @unique
+  passwordhash  String
+  createdat     DateTime        @default(now())
+  updatedat     DateTime        @updatedAt
+  stats         playerstats?
+  skills        playerskill[]
+  inventory     playerinventory[]
+  quests        playerquest[]
+  progress      gameprogress?
+}
+
+model playerstats {
+  id            String   @id @default(uuid())
+  playerid      String   @unique
+  level         Int      @default(1)
+  xp            Int      @default(0)
+  health        Int      @default(100)
+  maxhealth     Int      @default(100)
+  stamina       Int      @default(100)
+  maxstamina    Int      @default(100)
+  attackpower   Int      @default(10)
+  defense       Int      @default(5)
+  skillpoints   Int      @default(0)
+  player        player   @relation(fields: [playerid], references: [id], onDelete: Cascade)
+}
+
+model skill {
+  id            String        @id @default(uuid())
+  name          String
+  description   String
+  cost          Int
+  requiredlevel Int
+  effects       Json
+  iconurl       String
+  category      String
+  playerskills  playerskill[]
+}
+
+model playerskill {
+  id          String   @id @default(uuid())
+  playerid    String
+  skillid     String
+  unlockedat  DateTime @default(now())
+  player      player   @relation(fields: [playerid], references: [id], onDelete: Cascade)
+  skill       skill    @relation(fields: [skillid], references: [id], onDelete: Cascade)
+  
+  @@unique([playerid, skillid])
+}
+
+model item {
+  id              String              @id @default(uuid())
+  name            String
+  type            String
+  rarity          String
+  stats           Json
+  description     String
+  iconurl         String
+  playerinventory playerinventory[]
+}
+
+model playerinventory {
+  id            String  @id @default(uuid())
+  playerid      String
+  itemid        String
+  quantity      Int     @default(1)
+  equippedslot  String?
+  player        player  @relation(fields: [playerid], references: [id], onDelete: Cascade)
+  item          item    @relation(fields: [itemid], references: [id], onDelete: Cascade)
+  
+  @@unique([playerid, itemid])
+}
+
+model quest {
+  id            String        @id @default(uuid())
+  name          String
+  description   String
+  type          String
+  objectives    Json
+  rewards       Json
+  requiredlevel Int
+  area          String
+  playerquests  playerquest[]
+}
+
+model playerquest {
+  id          String    @id @default(uuid())
+  playerid    String
+  questid     String
+  status      String
+  progress    Json
+  startedat   DateTime  @default(now())
+  completedat DateTime?
+  player      player    @relation(fields: [playerid], references: [id], onDelete: Cascade)
+  quest       quest     @relation(fields: [questid], references: [id], onDelete: Cascade)
+  
+  @@unique([playerid, questid])
+}
+
+model gameprogress {
+  id            String   @id @default(uuid())
+  playerid      String   @unique
+  currentarea   String   @default("Starting Village")
+  position      Json
+  checkpoints   Json
+  unlockedareas Json
+  playtime      Int      @default(0)
+  lastsaved     DateTime @default(now())
+  player        player   @relation(fields: [playerid], references: [id], onDelete: Cascade)
+}
